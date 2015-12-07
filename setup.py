@@ -7,7 +7,7 @@ def Readme():
 
 
 setup(
-    name='bencode',
+    name='python-bencode',
     packages=['bencode'],
     version='0.0.5',
     description='bencode for humans',

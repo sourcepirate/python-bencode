@@ -1,2 +1,5 @@
 .idea
 *.pyc
+bencode.egg-info
+dist
+python_bencode.egg-info

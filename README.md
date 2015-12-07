@@ -8,7 +8,7 @@ Becode Encoder and Decoder
 
 ```
 
-pip install python-becode
+pip install python-bencode
 
 ```
 
