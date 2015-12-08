@@ -32,3 +32,6 @@ obj = Bencoder.decode(decodeable)
 
 ##LICENSE
 BSD
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/plasmashadow/python-bencode/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
