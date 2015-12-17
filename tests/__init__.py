@@ -1,7 +1,31 @@
 import unittest, json
 
+from hypothesis import given
+import hypothesis.strategies as st
+import collections
+
 #including the target source file.
 from bencode import Bencoder
+
+
+json_strat = st.recursive(
+    st.integers() | st.binary(),
+    lambda children: st.lists(children) | st.dictionaries(st.text(), children))
+
+
+def convert2utf8(data):
+    if isinstance(data, basestring):
+        try:
+            return data.encode('utf-8')
+        except UnicodeDecodeError:
+            return data
+    elif isinstance(data, collections.Mapping):
+        return dict(map(convert2utf8, data.iteritems()))
+    elif isinstance(data, collections.Iterable):
+        return type(data)(map(convert2utf8, data))
+    else:
+        return data
+
 
 class BecodeTester(unittest.TestCase):
 
@@ -44,3 +68,18 @@ class BecodeTester(unittest.TestCase):
         """test dict decode"""
         strs = Bencoder.decode("d4:abcdli34eee")
         self.assertEqual(strs.get("abcd"), [34])
+
+    @given(json_strat)
+    def test_can_decode_encoded(self, items):
+        if items == '' or items == {}:
+            return
+
+        items = convert2utf8(items)
+
+        encoded = Bencoder.encode(items)
+        decoded = Bencoder.decode(encoded)
+        self.assertEqual(items, decoded)
+
+
+if __name__ == '__main__':
+    unittest.main()

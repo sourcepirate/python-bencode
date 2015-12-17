@@ -102,7 +102,7 @@ def _encode_dict(dct):
                 value = _encode_list(value)
             elif isinstance(value, (str, )):
                 value = _encode_string(value)
-            elif isinstance(value, (int, )):
+            elif isinstance(value, (int, long)):
                 value = _encode_int(value)
             key = _encode_string(key)
             strs += "%s%s%s%s"%("d", key, value, "e")
