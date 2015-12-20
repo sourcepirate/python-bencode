@@ -9,7 +9,7 @@ def Readme():
 setup(
     name='python-bencode',
     packages=['bencode'],
-    version='0.0.5',
+    version='1.0.2',
     description='bencode for humans',
     long_description=Readme(),
     author='plasmashadow',
