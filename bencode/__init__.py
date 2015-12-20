@@ -1,4 +1,4 @@
-#author: plasmashadow
+# author: plasmashadow
 
 import six, json
 import re
@@ -14,6 +14,7 @@ if six.PY3:
     unicode = str
     long = int
 
+
 class BencodeException(Exception):
     """Base class for all bencode Exceptions"""
 
@@ -22,7 +23,8 @@ class BencodeException(Exception):
         self.data = data
 
     def __repr__(self):
-        return "<BencodeException mode = %s>[%s]=>[%s]"%(self.mode, self.message, self.data)
+        return "<BencodeException mode = %s>[%s]=>[%s]" % (self.mode, self.message, self.data)
+
 
 class BencodeEncodeError(BencodeException):
     """
@@ -30,6 +32,7 @@ class BencodeEncodeError(BencodeException):
     standard objects to bencoded Strings
     """
     mode = "Encode"
+
 
 class BencodeDecodeError(BencodeException):
     """
@@ -39,6 +42,7 @@ class BencodeDecodeError(BencodeException):
 
     mode = "Decode"
 
+
 def _encode_int(data):
     """
        Encodes the int, long in to bencoded strs
@@ -46,9 +50,10 @@ def _encode_int(data):
     :return String: becoded string
     """
     if isinstance(data, (int, long)):
-        return "%s%s%s"%("i", str(data), "e")
+        return "%s%s%s" % ("i", str(data), "e")
     else:
         raise BencodeEncodeError("Invalid Integer", data)
+
 
 def _encode_string(data):
     """
@@ -56,10 +61,11 @@ def _encode_string(data):
     :param data:
     :return: String: bencoded Strings
     """
-    if isinstance(data, (str, basestring, unicode, )):
-        return "%s:%s"%(str(len(data)), data)
+    if isinstance(data, (str, basestring, unicode,)):
+        return "%s:%s" % (str(len(data)), data)
     else:
         raise BencodeEncodeError("Invalid String", data)
+
 
 def _recursive_baselist_encode(data):
     """
@@ -71,8 +77,12 @@ def _recursive_baselist_encode(data):
     for element in data:
         if isinstance(element, (str, basestring, unicode)):
             strs += _encode_string(element)
-        elif isinstance(element, (int, long, )):
+        elif isinstance(element, (int, long,)):
             strs += _encode_int(element)
+        elif isinstance(element, (list, set, tuple)):
+            strs += _encode_list(element)
+        elif isinstance(element, (dict, )):
+            strs += _encode_dict(element)
     return strs
 
 
@@ -84,12 +94,12 @@ def _encode_list(lst):
     """
     if isinstance(lst, (list, set, tuple,)):
         lst = list(lst)
-        return "%s%s%s"%("l", _recursive_baselist_encode(lst), "e")
+        return "%s%s%s" % ("l", _recursive_baselist_encode(lst), "e")
     else:
         raise BencodeEncodeError("Invalid Collection ", lst)
 
-def _encode_dict(dct):
 
+def _encode_dict(dct):
     """
      Encodes the key, value pair to becoded strs
     :param dct:
@@ -97,22 +107,27 @@ def _encode_dict(dct):
     """
     strs = ""
     if isinstance(dct, (dict,)):
+        valrs = ""
         for key, value in six.iteritems(dct):
             if isinstance(value, (list, set, tuple)):
                 value = _encode_list(value)
-            elif isinstance(value, (str, )):
+            elif isinstance(value, (str,)):
                 value = _encode_string(value)
             elif isinstance(value, (int, long)):
                 value = _encode_int(value)
+            elif isinstance(value, dict):
+                value = _encode_dict(value)
             key = _encode_string(key)
-            strs += "%s%s%s%s"%("d", key, value, "e")
+            valrs += "%s%s" % (key, value)
+        strs = "%s%s%s" % ("d", valrs, "e")
     else:
         raise BencodeEncodeError("Invalid Dictionary", dct)
     return strs
 
-#decoding part
-#will try to use serial recursive tokenizer where input is divided
-#into list of meaning full parts. and then parsed.
+
+# decoding part
+# will try to use serial recursive tokenizer where input is divided
+# into list of meaning full parts. and then parsed.
 
 def _tokenizer(text_to_match):
     """
@@ -125,19 +140,23 @@ def _tokenizer(text_to_match):
     :param text_to_match:
     """
 
-    match = re.compile(__DATAPATTERN).match # match(string, pos=0, endpos=-1)
+    match = re.compile(__DATAPATTERN).match  # match(string, pos=0, endpos=-1)
     token_length = 0
     while token_length < len(text_to_match):
         m = match(text_to_match, token_length)
-        s = m.group(m.lastindex) #http://stackoverflow.com/questions/22489243/re-in-python-lastindex-attribute
+        s = m.group(m.lastindex)  # http://stackoverflow.com/questions/22489243/re-in-python-lastindex-attribute
         token_length = m.end()
 
-        if m.lastindex == 2: # then it is a bencoded string
+        if m.lastindex == 2:  # then it is a bencoded string
             yield "s"
-            yield text_to_match[token_length: token_length+int(s)]
-            token_length += int(s)
+            if int(s) == 0:
+                yield ""
+            else:
+                yield text_to_match[token_length: token_length + int(s)]
+                token_length += int(s)
         else:
             yield s
+
 
 def _decode_item(next, token):
     """
@@ -147,9 +166,9 @@ def _decode_item(next, token):
     """
     if token == "i":
         data = int(next())
-        if next() != "e": # then invalid integer
+        if next() != "e":  # then invalid integer
             raise BencodeDecodeError("Invalid parsable Integer", token)
-    elif token == "s": #then it is a string
+    elif token == "s":  # then it is a string
         data = next()
     elif token == "l" or token == "d":
         data = []
@@ -158,7 +177,7 @@ def _decode_item(next, token):
             data.append(_decode_item(next, tok))
             tok = next()
         if token == "d":
-            #since we get key value pairs like ["map", "hello", "we", "play",]
+            # since we get key value pairs like ["map", "hello", "we", "play",]
             # set map = 0 = key, hello = 1 = value
             # set we  = 2 = key, play  = 3= value
             # the parser has to move from 2 positions from the current position
@@ -170,24 +189,20 @@ def _decode_item(next, token):
     return data
 
 
-
 def _decode(text):
     """Decodes the becode String"""
     try:
         src = _tokenizer(text)
         pf = partial(six.next, src)
         data = _decode_item(pf, six.next(src))
-        for token in src: # look for more tokens
+        for token in src:  # look for more tokens
             raise BencodeDecodeError("Trailing junk tokens", token)
     except BencodeException:
         raise BencodeDecodeError("Ilegal syntax", data)
     return data
 
 
-
-
 class Bencoder(object):
-
     """
       A class wrapper around bencode encoding.
     """
@@ -197,7 +212,7 @@ class Bencoder(object):
         """encodes each python std object to bencoded strs"""
         if isinstance(obj, (str, basestring, unicode)):
             return _encode_string(obj)
-        elif isinstance(obj, (int, long, )):
+        elif isinstance(obj, (int, long,)):
             return _encode_int(obj)
         elif isinstance(obj, (list, tuple, set)):
             return _encode_list(obj)

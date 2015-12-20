@@ -80,6 +80,10 @@ class BecodeTester(unittest.TestCase):
         decoded = Bencoder.decode(encoded)
         self.assertEqual(items, decoded)
 
+    def test_critcal(self):
+        strs = Bencoder.decode("llee")
+        self.assertEqual(strs, [[]])
+
 
 if __name__ == '__main__':
     unittest.main()
